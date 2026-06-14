@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { scrapeForexFactory, categoriseEvents } from "../../lib/scrapeForexFactory";
 import { scrapeAllNews } from "../../lib/scrapeNews";
+import { scrapeMarketData } from "../../lib/scrapeMarketData";
 import { computeBias, type BiasResult } from "../../lib/biasEngine";
 
 export default async function handler(
@@ -9,45 +10,42 @@ export default async function handler(
 ) {
   if (req.method !== "GET") {
     return res.status(405).json({
-      usd: "BEARISH",
-      gold: "BULLISH",
+      gold: "BULLISH", usd: "BEARISH",
+      goldConfidence: 50, usdConfidence: 50,
       strength: "WEAK",
       event: "Method not allowed",
-      upcomingEvents: [],
-      newsHeadlines: [],
+      drivers: [], upcomingEvents: [], newsHeadlines: [],
       explanation: "Only GET requests are supported.",
-      sources: [],
-      timestamp: new Date().toUTCString(),
+      sources: [], timestamp: new Date().toUTCString(),
     });
   }
 
   try {
-    // Run FF scrape and news scrape in parallel
-    const [ffEvents, news] = await Promise.allSettled([
+    // All three sources in parallel
+    const [ffResult, newsResult, marketResult] = await Promise.allSettled([
       scrapeForexFactory(),
       scrapeAllNews(),
+      scrapeMarketData(),
     ]);
 
-    const events = ffEvents.status === "fulfilled" ? ffEvents.value : [];
-    const newsItems = news.status === "fulfilled" ? news.value : [];
+    const events     = ffResult.status     === "fulfilled" ? ffResult.value     : [];
+    const newsItems  = newsResult.status   === "fulfilled" ? newsResult.value   : [];
+    const marketData = marketResult.status === "fulfilled" ? marketResult.value : {};
 
     const { released, upcoming, latest } = categoriseEvents(events);
-    const result = computeBias(released, upcoming, latest, newsItems);
+    const result = computeBias(released, upcoming, latest, newsItems, marketData);
 
     return res.status(200).json(result);
   } catch (error) {
     console.error("Analyze API error:", error);
-
-    // Even on error, return a non-neutral default
     return res.status(200).json({
-      usd: "BEARISH",
-      gold: "BULLISH",
+      gold: "BULLISH", usd: "BEARISH",
+      goldConfidence: 55, usdConfidence: 52,
       strength: "WEAK",
       event: "Data temporarily unavailable",
-      upcomingEvents: [],
-      newsHeadlines: [],
+      drivers: [], upcomingEvents: [], newsHeadlines: [],
       explanation:
-        "Live data could not be retrieved at this moment. Defaulting to gold bullish bias given persistent geopolitical uncertainty.",
+        "Live data could not be retrieved. Defaulting to gold bullish bias given persistent macro uncertainty.",
       sources: [],
       timestamp: new Date().toUTCString(),
     });

@@ -19,46 +19,46 @@ export default function Home() {
       setResult(data);
     } catch {
       setResult({
-        usd: "BEARISH",
-        gold: "BULLISH",
+        gold: "BULLISH", usd: "BEARISH",
+        goldConfidence: 50, usdConfidence: 50,
         strength: "WEAK",
         event: "Unavailable",
-        upcomingEvents: [],
-        newsHeadlines: [],
+        drivers: [], upcomingEvents: [], newsHeadlines: [],
         explanation: "Market data unavailable at this moment.",
-        sources: [],
-        timestamp: new Date().toUTCString(),
+        sources: [], timestamp: new Date().toUTCString(),
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getIcon = (bias: string) => {
-    if (bias === "BULLISH") return "📈";
-    if (bias === "BEARISH") return "📉";
-    return "➖";
-  };
+  const biasIcon = (bias: string) => bias === "BULLISH" ? "📈" : "📉";
 
-  const getBadgeClasses = (bias: string) => {
-    if (bias === "BULLISH")
-      return "bg-emerald-950 border border-emerald-800 text-emerald-400";
-    if (bias === "BEARISH")
-      return "bg-red-950 border border-red-800 text-red-400";
-    return "dark:bg-slate-800 bg-slate-200 dark:border-slate-700 border-slate-300 dark:text-slate-400 text-slate-500";
-  };
+  const biasColor = (bias: string) =>
+    bias === "BULLISH"
+      ? "text-emerald-400"
+      : "text-red-400";
 
-  const getStrengthClasses = (strength: string) => {
-    if (strength === "STRONG") return "text-emerald-400 bg-emerald-950 border-emerald-800";
-    if (strength === "MODERATE") return "text-yellow-400 bg-yellow-950 border-yellow-800";
-    return "text-slate-400 bg-slate-800 border-slate-700";
-  };
+  const badgeClasses = (bias: string) =>
+    bias === "BULLISH"
+      ? "bg-emerald-950 border border-emerald-800 text-emerald-400"
+      : "bg-red-950 border border-red-800 text-red-400";
 
-  const getExplanationColor = (bias: string) => {
-    if (bias === "BULLISH") return "text-emerald-400";
-    if (bias === "BEARISH") return "text-red-400";
-    return "dark:text-slate-400 text-slate-500";
-  };
+  const strengthColor = (s: string) =>
+    s === "STRONG"   ? "text-emerald-400 bg-emerald-950 border-emerald-800" :
+    s === "MODERATE" ? "text-yellow-400 bg-yellow-950 border-yellow-800" :
+                       "text-slate-400 bg-slate-800 border-slate-700";
+
+  const confidenceBar = (pct: number, bias: string) => (
+    <div className="mt-2 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all duration-700 ${
+          bias === "BULLISH" ? "bg-emerald-500" : "bg-red-500"
+        }`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-white transition-colors duration-300 flex items-center justify-center px-4 py-10">
@@ -67,17 +67,14 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <p className="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-2">
-              XAUUSD Analysis
+            <p className="text-xs font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-1">
+              XAUUSD · Multi-Source Analysis
             </p>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Quick Bias Tool
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-              Forex Factory · News Sentiment · Multi-source
+            <h1 className="text-3xl font-semibold tracking-tight">Quick Bias Tool</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              Forex Factory · DXY · Yields · VIX · Oil · News
             </p>
           </div>
-
           <button
             onClick={() => setDark(!dark)}
             aria-label="Toggle dark mode"
@@ -97,99 +94,129 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Card */}
-        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl transition-colors duration-300">
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-xl transition-colors duration-300 space-y-4">
 
+          {/* Analyze button */}
           <button
             onClick={analyzeMarket}
             disabled={loading}
-            className="w-full font-semibold font-mono text-sm tracking-widest uppercase transition-colors rounded-xl py-3.5
+            className="w-full font-semibold font-mono text-sm tracking-widest uppercase transition-colors rounded-xl py-4
               bg-slate-900 hover:bg-slate-700 text-white
               dark:bg-white dark:hover:bg-slate-100 dark:text-slate-950
-              disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:text-slate-400 dark:disabled:text-slate-500 disabled:cursor-not-allowed"
+              disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            {loading ? "Scanning Sources..." : "Analyze Market"}
+            {loading ? "Scanning All Sources..." : "⚡ Analyze Now"}
           </button>
 
           {loading && (
-            <div className="mt-4 space-y-1.5 text-xs font-mono text-slate-500 dark:text-slate-400">
-              <p>⏳ Scraping Forex Factory...</p>
-              <p>📰 Fetching news from Axios, Reuters, MarketWatch...</p>
-              <p>🧠 Computing bias...</p>
+            <div className="space-y-1 text-xs font-mono text-slate-400 px-1">
+              <p>📊 Scraping Forex Factory calendar...</p>
+              <p>📈 Fetching DXY, 10Y Yield, 2Y Yield, VIX, Oil...</p>
+              <p>📰 Pulling Axios, Reuters, MarketWatch headlines...</p>
+              <p>🧠 Running scoring engine...</p>
             </div>
           )}
 
           {result && (
-            <div className="mt-6 space-y-3">
+            <div className="space-y-3">
 
               {/* Timestamp */}
               <p className="text-xs font-mono text-slate-400 dark:text-slate-500 text-right">
                 {result.timestamp}
               </p>
 
-              {/* USD / Gold bias */}
+              {/* Gold + USD bias cards */}
               <div className="grid grid-cols-2 gap-3">
-                {(["usd", "gold"] as const).map((asset) => (
-                  <div
-                    key={asset}
-                    className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 transition-colors"
-                  >
-                    <p className="text-xs font-mono text-slate-400 dark:text-slate-500 tracking-widest uppercase mb-2">
-                      {asset === "usd" ? "US Dollar" : "Gold"}
-                    </p>
-                    <p className="text-2xl font-semibold mb-2">
-                      {asset === "usd" ? "USD" : "XAU"}
-                    </p>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 rounded-md ${getBadgeClasses(result[asset])}`}>
-                      {getIcon(result[asset])} {result[asset]}
-                    </span>
-                  </div>
-                ))}
+                {(["gold", "usd"] as const).map((asset) => {
+                  const bias = result[asset];
+                  const conf = asset === "gold" ? result.goldConfidence : result.usdConfidence;
+                  return (
+                    <div key={asset} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                      <p className="text-xs font-mono text-slate-400 dark:text-slate-500 tracking-widest uppercase mb-1">
+                        {asset === "gold" ? "Gold (XAU)" : "US Dollar"}
+                      </p>
+                      <p className="text-2xl font-semibold mb-2">
+                        {asset === "gold" ? "XAU" : "USD"}
+                      </p>
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold px-2.5 py-1 rounded-md ${badgeClasses(bias)}`}>
+                        {biasIcon(bias)} {bias}
+                      </span>
+                      <div className="mt-3">
+                        <div className="flex justify-between text-xs font-mono text-slate-400 mb-1">
+                          <span>Confidence</span>
+                          <span className={biasColor(bias)}>{conf}%</span>
+                        </div>
+                        {confidenceBar(conf, bias)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Strength */}
+              {/* Signal strength */}
               <div className="flex items-center justify-between bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3">
                 <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                   Signal Strength
                 </p>
-                <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-md border ${getStrengthClasses(result.strength)}`}>
+                <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-md border ${strengthColor(result.strength)}`}>
                   {result.strength}
                 </span>
               </div>
 
-              {/* FF Event stats */}
-              {result.actual && (
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { label: "Actual", value: result.actual },
-                    { label: "Forecast", value: result.forecast ?? "—" },
-                    { label: "Surprise", value: String(result.surprise ?? "—") },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-center transition-colors">
-                      <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">{label}</p>
-                      <p className="text-sm font-semibold font-mono">{value}</p>
-                    </div>
-                  ))}
+              {/* Key drivers checklist */}
+              {result.drivers.length > 0 && (
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                  <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                    Scoring Drivers
+                  </p>
+                  <ul className="space-y-2">
+                    {result.drivers.map((d, i) => (
+                      <li key={i} className="flex items-start justify-between gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className={d.goldPoints < 0 ? "text-red-400" : "text-emerald-400"}>
+                            {d.goldPoints < 0 ? "🔴" : "🟢"}
+                          </span>
+                          <span className="font-medium">{d.label}</span>
+                        </div>
+                        <div className="flex gap-2 text-xs font-mono shrink-0">
+                          <span className={d.goldPoints < 0 ? "text-red-400" : "text-emerald-400"}>
+                            XAU {d.goldPoints > 0 ? "+" : ""}{d.goldPoints}
+                          </span>
+                          <span className={d.usdPoints > 0 ? "text-emerald-400" : "text-red-400"}>
+                            USD {d.usdPoints > 0 ? "+" : ""}{d.usdPoints}
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
               {/* Key event */}
-              <div className="bg-white dark:bg-slate-950 border-l-2 border-slate-400 dark:border-slate-500 border-y border-r border-slate-200 dark:border-slate-800 rounded-xl p-4 transition-colors">
-                <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Key Event</p>
-                <p className="font-medium text-sm">{result.event}</p>
-              </div>
+              {result.event && (
+                <div className="bg-white dark:bg-slate-950 border-l-2 border-slate-400 dark:border-slate-500 border-y border-r border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                  <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+                    Key Event
+                  </p>
+                  <p className="font-medium text-sm">{result.event}</p>
+                  {result.actual && (
+                    <p className="text-xs font-mono text-slate-400 mt-1">
+                      Actual: {result.actual} · Forecast: {result.forecast}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Upcoming events */}
               {result.upcomingEvents.length > 0 && (
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 transition-colors">
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                   <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
                     Upcoming Events
                   </p>
                   <ul className="space-y-1">
                     {result.upcomingEvents.map((e, i) => (
-                      <li key={i} className="text-sm flex items-start gap-2">
-                        <span className="text-yellow-500 mt-0.5">⏳</span>
-                        <span>{e}</span>
+                      <li key={i} className="text-sm flex items-center gap-2">
+                        <span className="text-yellow-500">⏳</span> {e}
                       </li>
                     ))}
                   </ul>
@@ -198,15 +225,15 @@ export default function Home() {
 
               {/* News headlines */}
               {result.newsHeadlines.length > 0 && (
-                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 transition-colors">
+                <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
                   <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
                     News Driving Bias
                   </p>
-                  <ul className="space-y-2">
+                  <ul className="space-y-2.5">
                     {result.newsHeadlines.map((n, i) => (
                       <li key={i} className="text-sm">
                         <p className="font-medium leading-snug">{n.headline}</p>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 font-mono">
                           {n.source} · {n.time}
                         </p>
                       </li>
@@ -215,12 +242,14 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Analysis */}
-              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 transition-colors">
-                <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Analysis</p>
-                <p className={`text-sm font-medium leading-relaxed ${getExplanationColor(result.gold)}`}>
-                  {result.explanation}
+              {/* Full explanation */}
+              <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+                <p className="text-xs font-mono text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                  Full Analysis
                 </p>
+                <pre className={`text-xs leading-relaxed whitespace-pre-wrap font-mono ${biasColor(result.gold)}`}>
+                  {result.explanation}
+                </pre>
               </div>
 
               {/* Sources */}
